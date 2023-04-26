@@ -125,3 +125,6 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+public (pre-chakra)/app.js
+public (pre-chakra)/index.html
+public (pre-chakra)/style.css
