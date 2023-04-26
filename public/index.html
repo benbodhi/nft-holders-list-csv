@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
+	<title>NFT Holders List Export</title>
+</head>
+
+<body>
+	<h1>NFT Holders List Export</h1>
+	<form id="token-form">
+		<label for="contract-address">Contract Address (required):</label>
+		<input type="text" id="contract-address" required>
+		<br>
+		<label for="token-ids">Token ID(s) (optional):</label>
+		<input type="text" id="token-ids" placeholder="1,2,3..." disabled>
+		<br>
+		<label for="token-range">Token ID Range (optional):</label>
+		<input type="text" id="token-range" placeholder="123-234" disabled>
+		<br>
+		<label for="token-date-range">Date Range (optional, UTC, YYYY-MM-DD):</label>
+		<input type="text" id="token-date-range" placeholder="2022-01-01 to 2022-01-31" disabled>
+		<br>
+		<label for="owner-type">Owner Type:</label>
+		<input type="radio" id="owner-current" name="owner-type" value="current" checked>
+		<label for="owner-current">Current Owner</label>
+		<input type="radio" id="owner-original" name="owner-type" value="original">
+		<label for="owner-original">Original Minter</label>
+		<br>
+		<button type="submit" id="submit-button">Fetch Token Holders</button>
+	</form>
+	<div id="output">
+		<h2>CSV Downloads</h2>
+		<div id="csv-links"></div>
+		<a id="download-all" style="display:none" download="all_token_holders.zip">Download All CSVs</a>
+	</div>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+	<script src="app.js"></script>
+</body>
+
+</html>
