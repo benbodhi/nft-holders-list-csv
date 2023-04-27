@@ -262,12 +262,22 @@ downloadAllLink.addEventListener('click', async (event) => {
   const filename = combinedLink.getAttribute('download');
   zip.file(filename, text);
 
+  // Get ownerType
+  const ownerTypeInput = document.getElementsByName('owner-type');
+  let ownerType = 'original';
+  for (const radio of ownerTypeInput) {
+    if (radio.checked) {
+      ownerType = radio.value;
+    }
+  }
+
   // Generate and download the ZIP file
   const content = await zip.generateAsync({ type: 'blob' });
   const zipUrl = URL.createObjectURL(content);
   const tempLink = document.createElement('a');
   tempLink.href = zipUrl;
-  tempLink.setAttribute('download', 'all_token_holders.zip');
+  const fileNamePrefix = ownerType === 'original' ? 'original_minters' : 'current_owners';
+  tempLink.setAttribute('download', `all_retrieved_${fileNamePrefix}.zip`);
   tempLink.style.display = 'none';
   document.body.appendChild(tempLink);
   tempLink.click();
