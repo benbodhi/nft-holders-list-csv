@@ -51,28 +51,45 @@ async function fetchMintedTokenIdsByDateRange(contractAddress, tokenDateStart, t
   }
 }
 
+async function fetchAllTokenIds(contractAddress, apiKey) {
+  const url = `https://api.etherscan.io/api?module=account&action=tokennfttx&contractaddress=${contractAddress}&startblock=0&endblock=999999999&sort=asc&apikey=${apiKey}`;
+  const response = await axios.get(url);
+  const transfers = response.data.result;
+
+  const tokenIds = new Set();
+
+  transfers.forEach(tx => {
+    const tokenId = parseInt(tx.tokenID);
+    tokenIds.add(tokenId);
+  });
+
+  return Array.from(tokenIds);
+}
+
 app.post('/fetch-token-holders', async (req, res) => {
-  const { contractAddress, tokenIds, tokenRange, tokenDateStart, tokenDateEnd, combined, ownerType } = req.body;
+  const { contractAddress, tokenIds, tokenRange, tokenDateStart, tokenDateEnd, combined, ownerType, fetchAll } = req.body;
   const apiKey = process.env.ETHERSCAN_API_KEY;
   const web3 = new Web3();
   const tokenHolders = [];
 
   let tokenIdsToFetch = tokenIds || [];
 
-  if (tokenDateStart && tokenDateEnd) {
-    tokenIdsToFetch = await fetchMintedTokenIdsByDateRange(contractAddress, tokenDateStart, tokenDateEnd, apiKey, ownerType);
-  }
-
-  if (tokenRange) {
-    const [start, end] = tokenRange.split('-').map(Number);
-    const rangeIds = [];
-    for (let i = start; i <= end; i++) {
-      rangeIds.push(i);
+  if (fetchAll) {
+    tokenIdsToFetch = await fetchAllTokenIds(contractAddress, apiKey);
+  } else {
+    if (tokenDateStart && tokenDateEnd) {
+      tokenIdsToFetch = await fetchMintedTokenIdsByDateRange(contractAddress, tokenDateStart, tokenDateEnd, apiKey, ownerType);
     }
-    tokenIdsToFetch = tokenIdsToFetch.concat(rangeIds);
-  }
 
-  console.log('Token IDs to fetch:', tokenIdsToFetch);
+    if (tokenRange) {
+      const [start, end] = tokenRange.split('-').map(Number);
+      const rangeIds = [];
+      for (let i = start; i <= end; i++) {
+        rangeIds.push(i);
+      }
+      tokenIdsToFetch = tokenIdsToFetch.concat(rangeIds);
+    }
+  }
 
   console.log('Fetching token holders for:', {
     contractAddress,

@@ -47,6 +47,9 @@ toggleSwitch.addEventListener('change', switchTheme, false);
 
 const inputs = document.querySelectorAll('.input-container input');
 
+// Get the "fetch-all" checkbox element
+const fetchAllCheckbox = document.getElementById('fetch-all');
+
 inputs.forEach(input => {
   const clearIcon = input.nextElementSibling;
 
@@ -91,7 +94,7 @@ function validateOptionalInputs() {
       return true;
     }
   }
-  return false;
+  return fetchAllCheckbox.checked;
 }
 
 optionalInputs.forEach(input => {
@@ -184,7 +187,7 @@ tokenForm.addEventListener('submit', async (event) => {
 
   // Validate optional inputs
   if (!validateOptionalInputs()) {
-    alert('Please fill in at least one of the optional ID fields.');
+    alert('Please fill in at least one of the optional ID fields or select "Fetch all tokens from this contract".');
     return;
   }
 
@@ -236,12 +239,16 @@ tokenForm.addEventListener('submit', async (event) => {
   const [tokenDateStart, tokenDateEnd] = tokenDateRange.split('to').map(date => date.trim());
   const combined = false;
 
+  // Get the fetchAll value
+  const fetchAll = fetchAllCheckbox.checked;
+
+  // Update the POST request body to include the "fetchAll" flag
   const response = await fetch('/fetch-token-holders', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ contractAddress, tokenIds, tokenRange, tokenDateStart, tokenDateEnd, combined, ownerType })
+    body: JSON.stringify({ contractAddress, tokenIds, tokenRange, tokenDateStart, tokenDateEnd, combined, ownerType, fetchAll })
   });
 
   const tokenHolders = await response.json();
@@ -318,6 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('download-all button class list:', document.getElementById('download-all').classList);
 });
 
+// support for erc-1155
 // TODO better progress update info for user
 // TODO make sure we don't bother processing beyond existing tokens - maybe check total tokens before iterating through non existent ones for better performance.
-// TODO add an option to export all, no need for range fields
