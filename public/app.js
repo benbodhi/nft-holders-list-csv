@@ -317,3 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('download-combined button class list:', document.getElementById('download-combined').classList);
   console.log('download-all button class list:', document.getElementById('download-all').classList);
 });
+
+// TODO better progress update info for user
+// TODO make sure we don't bother processing beyond existing tokens - maybe check total tokens before iterating through non existent ones for better performance.
+// TODO add an option to export all, no need for range fields
