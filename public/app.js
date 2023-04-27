@@ -105,7 +105,7 @@ const litepicker = new Litepicker({
 
 let numTokenIdsProcessed = 0;
 
-async function createCSV(tokenId, holders) {
+async function createCSV(tokenId, holders, ownerType) {
   // Increment the number of token IDs processed
   numTokenIdsProcessed++;
 
@@ -113,7 +113,8 @@ async function createCSV(tokenId, holders) {
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement('a');
   link.setAttribute('href', encodedUri);
-  link.setAttribute('download', `token_${tokenId}_holders.csv`);
+  const fileNamePrefix = ownerType === 'original' ? 'original_minters' : 'current_owners';
+  link.setAttribute('download', `token_${tokenId}_${fileNamePrefix}.csv`);
   link.innerText = `Download CSV for Token ID ${tokenId}`;
   link.classList.add('button');
   csvLinksContainer.appendChild(link);
@@ -132,7 +133,7 @@ async function createCSV(tokenId, holders) {
   return link;
 }
 
-function createCombinedCSV(tokenHolders) {
+function createCombinedCSV(tokenHolders, ownerType) {
   const combinedHolders = new Set();
   tokenHolders.forEach(({ tokenId, holders }) => {
     holders.forEach(([h, value]) => combinedHolders.add(h));
@@ -141,7 +142,8 @@ function createCombinedCSV(tokenHolders) {
   const encodedUri = encodeURI(csvContent);
   const link = document.getElementById('download-combined');
   link.setAttribute('href', encodedUri);
-  link.setAttribute('download', 'combined_holders.csv');
+  const fileNamePrefix = ownerType === 'original' ? 'original_minters' : 'current_owners';
+  link.setAttribute('download', `combined_${fileNamePrefix}.csv`);
   link.classList.remove('hidden');
 }
 
@@ -225,13 +227,13 @@ tokenForm.addEventListener('submit', async (event) => {
 
   const csvLinks = [];
   tokenHolders.forEach(({ tokenId, holders }) => {
-    const link = createCSV(tokenId, holders);
+    const link = createCSV(tokenId, holders, ownerType);
     csvLinks.push(link);
   });
 
   // Show the "Download Combined CSV" button and "Download All" button only if more than one token holder
   if (tokenHolders.length > 1) {
-    createCombinedCSV(tokenHolders);
+    createCombinedCSV(tokenHolders, ownerType);
     document.getElementById('download-combined').classList.remove('hidden');
     document.getElementById('download-all').classList.remove('hidden');
   }
