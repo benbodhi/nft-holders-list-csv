@@ -43,67 +43,37 @@ function clearOtherInputs(currentInput) {
 }
 
 function validateTokenIds(tokenIds) {
+  if (!tokenIds) {
+    return false;
+  }
   const idsPattern = /^\d+(,\s*\d+)*$/;
   return idsPattern.test(tokenIds);
 }
 
 function validateTokenRange(tokenRange) {
+  if (!tokenRange) {
+    return false;
+  }
   const rangePattern = /^\d+\s*-\s*\d+$/;
   return rangePattern.test(tokenRange);
 }
 
 function validateTokenDateRange(tokenDateRange) {
+  if (!tokenDateRange) {
+    return false;
+  }
   const dateRangePattern = /^\d{4}-\d{2}-\d{2}\s*to\s*\d{4}-\d{2}-\d{2}$/;
   return dateRangePattern.test(tokenDateRange);
 }
 
-const litepicker = new Litepicker({
-  element: tokenDateRangeInput,
-  format: 'YYYY-MM-DD',
-  delimiter: ' to ',
-  singleMode: false,
-  autoApply: false,
-  numberOfMonths: 2,
-  numberOfColumns: 2,
-  disableMobile: true,
-  onSelect: (start, end) => {
-    tokenDateRangeInput.value = start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD');
+function validateOptionalInputs() {
+  for (const input of optionalInputs) {
+    if (input.value.trim() !== '') {
+      return true;
+    }
   }
-});
-
-function createCSV(tokenId, holders) {
-  const csvContent = `data:text/csv;charset=utf-8,${holders.map(([h, value]) => `${h}`).join('\n')}`;
-  const encodedUri = encodeURI(csvContent);
-  const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', `token_${tokenId}_holders.csv`);
-  link.innerText = `Download CSV for Token ID ${tokenId}`;
-  link.classList.add('button');
-  csvLinksContainer.appendChild(link);
-  const lineBreak = document.createElement('br');
-  csvLinksContainer.appendChild(lineBreak);
-  return link;
+  return false;
 }
-
-function createCombinedCSV(tokenHolders) {
-  const combinedHolders = new Set();
-  tokenHolders.forEach(({ tokenId, holders }) => {
-    holders.forEach(([h, value]) => combinedHolders.add(h));
-  });
-  const csvContent = `data:text/csv;charset=utf-8,${Array.from(combinedHolders).join('\n')}`;
-  const encodedUri = encodeURI(csvContent);
-  const link = document.getElementById('download-combined');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', 'combined_holders.csv');
-  link.style.display = 'block';
-}
-
-contractAddressInput.addEventListener('input', () => {
-  const isContractAddressFilled = contractAddressInput.value.trim() !== '';
-  tokenIdsInput.disabled = !isContractAddressFilled;
-  tokenRangeInput.disabled = !isContractAddressFilled;
-  tokenDateRangeInput.disabled = !isContractAddressFilled;
-});
 
 optionalInputs.forEach(input => {
   input.addEventListener('focus', () => {
@@ -119,12 +89,97 @@ optionalInputs.forEach(input => {
   });
 });
 
+const litepicker = new Litepicker({
+  element: tokenDateRangeInput,
+  format: 'YYYY-MM-DD',
+  delimiter: ' to ',
+  singleMode: false,
+  autoApply: false,
+  numberOfMonths: 2,
+  numberOfColumns: 2,
+  disableMobile: true,
+  onSelect: (start, end) => {
+    tokenDateRangeInput.value = start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD');
+  }
+});
+
+// function createCSV(tokenId, holders) {
+//   const csvContent = `data:text/csv;charset=utf-8,${holders.map(([h, value]) => `${h}`).join('\n')}`;
+//   const encodedUri = encodeURI(csvContent);
+//   const link = document.createElement('a');
+//   link.setAttribute('href', encodedUri);
+//   link.setAttribute('download', `token_${tokenId}_holders.csv`);
+//   link.innerText = `Download CSV for Token ID ${tokenId}`;
+//   link.classList.add('button');
+//   csvLinksContainer.appendChild(link);
+//   const lineBreak = document.createElement('br');
+//   csvLinksContainer.appendChild(lineBreak);
+//   return link;
+// }
+
+let numTokenIdsProcessed = 0;
+
+async function createCSV(tokenId, holders) {
+  // Increment the number of token IDs processed
+  numTokenIdsProcessed++;
+
+  const csvContent = `data:text/csv;charset=utf-8,${holders.map(([h, value]) => `${h}`).join('\n')}`;
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `token_${tokenId}_holders.csv`);
+  link.innerText = `Download CSV for Token ID ${tokenId}`;
+  link.classList.add('button');
+  csvLinksContainer.appendChild(link);
+  const lineBreak = document.createElement('br');
+  csvLinksContainer.appendChild(lineBreak);
+
+  // Hide the "Download Combined CSV" button & "Download All" button when processing a single token ID
+  if (numTokenIdsProcessed === 1) {
+    downloadAllLink.classList.add('hidden');
+    document.getElementById('download-combined').classList.add('hidden');
+  } else {
+    downloadAllLink.classList.remove('hidden');
+    document.getElementById('download-combined').classList.remove('hidden');
+  }
+
+  return link;
+}
+
+function createCombinedCSV(tokenHolders) {
+  const combinedHolders = new Set();
+  tokenHolders.forEach(({ tokenId, holders }) => {
+    holders.forEach(([h, value]) => combinedHolders.add(h));
+  });
+  const csvContent = `data:text/csv;charset=utf-8,${Array.from(combinedHolders).join('\n')}`;
+  const encodedUri = encodeURI(csvContent);
+  const link = document.getElementById('download-combined');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', 'combined_holders.csv');
+  link.classList.remove('hidden');
+}
+
+contractAddressInput.addEventListener('input', () => {
+  const isContractAddressFilled = contractAddressInput.value.trim() !== '';
+  tokenIdsInput.disabled = !isContractAddressFilled;
+  tokenRangeInput.disabled = !isContractAddressFilled;
+  tokenDateRangeInput.disabled = !isContractAddressFilled;
+});
+
 tokenForm.addEventListener('submit', async (event) => {
   event.preventDefault();
+
+  numTokenIdsProcessed = 0;
 
   // Initially hide the "Download Combined CSV" button & "Download All" button
   document.getElementById('download-combined').classList.add('hidden');
   document.getElementById('download-all').classList.add('hidden');
+
+  // Validate optional inputs
+  if (!validateOptionalInputs()) {
+    alert('Please fill in at least one of the optional ID fields.');
+    return;
+  }
 
   // Validate token IDs format
   if (tokenIdsInput.value && !validateTokenIds(tokenIdsInput.value)) {
@@ -188,12 +243,12 @@ tokenForm.addEventListener('submit', async (event) => {
     csvLinks.push(link);
   });
 
-  createCombinedCSV(tokenHolders);
-
-  // Show the "Download Combined CSV" button
-  document.getElementById('download-combined').classList.remove('hidden');
-  // Show the "Download All CSVs" button
-  document.getElementById('download-all').classList.remove('hidden');
+  // Show the "Download Combined CSV" button and "Download All" button only if more than one token holder
+  if (tokenHolders.length > 1) {
+    createCombinedCSV(tokenHolders);
+    document.getElementById('download-combined').classList.remove('hidden');
+    document.getElementById('download-all').classList.remove('hidden');
+  }
 
   submitButton.disabled = false;
 });
@@ -203,6 +258,7 @@ downloadAllLink.addEventListener('click', async (event) => {
 
   const zip = new JSZip();
 
+  // Add all individual CSV files
   const allLinks = Array.from(csvLinksContainer.querySelectorAll('a'));
   for (const link of allLinks) {
     const response = await fetch(link.href);
@@ -211,6 +267,14 @@ downloadAllLink.addEventListener('click', async (event) => {
     zip.file(filename, text);
   }
 
+  // Add the combined CSV file
+  const combinedLink = document.getElementById('download-combined');
+  const response = await fetch(combinedLink.href);
+  const text = await response.text();
+  const filename = combinedLink.getAttribute('download');
+  zip.file(filename, text);
+
+  // Generate and download the ZIP file
   const content = await zip.generateAsync({ type: 'blob' });
   const zipUrl = URL.createObjectURL(content);
   const tempLink = document.createElement('a');
@@ -223,6 +287,7 @@ downloadAllLink.addEventListener('click', async (event) => {
   setTimeout(() => URL.revokeObjectURL(zipUrl), 1000);
 });
 
-// TODO download all csvs button is hidden
-// TODO download all and combined buttons need to be equal half width
-// TODO download all button should download the combined CSV in the package too
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('download-combined button class list:', document.getElementById('download-combined').classList);
+  console.log('download-all button class list:', document.getElementById('download-all').classList);
+});
