@@ -103,20 +103,6 @@ const litepicker = new Litepicker({
   }
 });
 
-// function createCSV(tokenId, holders) {
-//   const csvContent = `data:text/csv;charset=utf-8,${holders.map(([h, value]) => `${h}`).join('\n')}`;
-//   const encodedUri = encodeURI(csvContent);
-//   const link = document.createElement('a');
-//   link.setAttribute('href', encodedUri);
-//   link.setAttribute('download', `token_${tokenId}_holders.csv`);
-//   link.innerText = `Download CSV for Token ID ${tokenId}`;
-//   link.classList.add('button');
-//   csvLinksContainer.appendChild(link);
-//   const lineBreak = document.createElement('br');
-//   csvLinksContainer.appendChild(lineBreak);
-//   return link;
-// }
-
 let numTokenIdsProcessed = 0;
 
 async function createCSV(tokenId, holders) {
