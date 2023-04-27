@@ -22,6 +22,9 @@
 			</label>
 		</div>
 	</header>
+	<div class="intro">
+		<p>Please note: only ERC-721 is supported for now</p>
+	</div>
 	<main class="main">
 		<form id="token-form" class="form">
 			<label for="contract-address" class="form__label">Contract Address:</label>
@@ -55,11 +58,11 @@
 
 			<label for="fetch-all">
 			<input type="checkbox" id="fetch-all" name="fetch-all" />
-			Fetch all tokens from this contract
+			Fetch all owners/minters of tokens from this contract
 			</label>
 
 			<fieldset class="form__fieldset">
-				<legend class="form__legend">Get:</legend>
+				<legend class="form__legend">Get Wallet:</legend>
 				<input type="radio" id="owner-current" name="owner-type" value="current" checked>
 				<label for="owner-current">Current Owner</label>
 				<input type="radio" id="owner-original" name="owner-type" value="original">
