@@ -6,8 +6,9 @@ const Web3 = require('web3');
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.listen(process.env.PORT || 3000, '0.0.0.0', function(){
-  console.log('Server listening on port ' + (process.env.PORT || 3000));
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
 
 app.use(cors());
@@ -158,8 +159,4 @@ app.post('/fetch-token-holders', async (req, res) => {
   } else {
     res.json(tokenHolders);
   }
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
 });
