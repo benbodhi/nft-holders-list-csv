@@ -166,6 +166,35 @@ body.dark-mode .form__legend {
 	background-color: #1c8e54;
 }
 
+.input-container {
+	position: relative;
+	display: flex;
+}
+
+.input-container input {
+	flex: 1;
+	padding-right: 24px;
+	/* Leave space for the clear icon */
+}
+
+.clear-icon {
+	position: absolute;
+	top: 0;
+	right: 0;
+	padding: 6px;
+	cursor: pointer;
+	display: none;
+}
+
+.clear-icon:hover {
+	background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Show the clear icon when the input is non-empty */
+.input-container input:not(:placeholder-shown)+.clear-icon {
+	display: block;
+}
+
 .output {
 	margin-top: 20px;
 }
@@ -178,6 +207,20 @@ body.dark-mode .form__legend {
 
 .output__links {
 	margin-bottom: 10px;
+}
+
+.output__links .button {
+	margin-right: 10px;
+}
+
+.output__buttons {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.hidden {
+	display: none;
 }
 
 .button {

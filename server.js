@@ -107,9 +107,9 @@ app.post('/fetch-token-holders', async (req, res) => {
           console.log(`(1) Setting holder (original minter) ${tx.to} for Token ID ${tokenId}`);
         } else {
           holders.delete(tx.from);
-          console.log(`Removing holder (original minter) ${tx.from} for Token ID ${tokenId}`);
+          console.log(`Removing Previous Holder ${tx.from} for Token ID ${tokenId}`);
           holders.set(tx.to, tokenId);
-          console.log(`(2) Setting holder (current owner) ${tx.to} for Token ID ${tokenId}`);
+          console.log(`(2) Setting holder (new owner) ${tx.to} for Token ID ${tokenId}`);
         }
       } else {
         if (isMintTransaction) {
