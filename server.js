@@ -6,7 +6,9 @@ const Web3 = require('web3');
 
 const app = express();
 const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server listening on port ${port}`));
+app.listen(process.env.PORT || 3000, '0.0.0.0', function(){
+  console.log('Server listening on port ' + (process.env.PORT || 3000));
+});
 
 app.use(cors());
 app.use(express.static('public'));
