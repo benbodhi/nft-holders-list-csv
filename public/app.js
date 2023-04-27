@@ -5,16 +5,25 @@ const csvLinksContainer = document.getElementById('csv-links');
 const downloadAllLink = document.getElementById('download-all');
 const tokenRangeInput = document.getElementById('token-range');
 const tokenDateRangeInput = document.getElementById('token-date-range');
-const ownerTypeInput = document.getElementsByName('owner-type');
-let ownerType = 'original';
 
-for (const radio of ownerTypeInput) {
-  radio.addEventListener('change', () => {
-    if (radio.checked) {
-      ownerType = radio.value;
-    }
-  });
+const toggleSwitch = document.querySelector('.toggle__input');
+
+function switchTheme(event) {
+  const toggleLabel = document.querySelector('.toggle__label');
+  if (event.target.checked) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.body.classList.remove('dark-mode');
+      document.body.classList.add('light-mode');
+      toggleLabel.querySelector('.toggle__icon--light').style.display = 'inline-block';
+  } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.classList.remove('light-mode');
+      document.body.classList.add('dark-mode');
+      toggleLabel.querySelector('.toggle__icon--dark').style.display = 'inline-block';
+  }
 }
+
+toggleSwitch.addEventListener('change', switchTheme, false);
 
 const litepicker = new Litepicker({
   element: tokenDateRangeInput,
@@ -29,6 +38,43 @@ const litepicker = new Litepicker({
     tokenDateRangeInput.value = start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD');
   }
 });
+
+function createCSV(tokenId, holders) {
+  const csvContent = `data:text/csv;charset=utf-8,${holders.map(([h, value]) => `${h}`).join('\n')}`;
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `token_${tokenId}_holders.csv`);
+  link.innerText = `Download CSV for Token ID ${tokenId}`;
+  link.classList.add('button');
+  csvLinksContainer.appendChild(link);
+  const lineBreak = document.createElement('br');
+  csvLinksContainer.appendChild(lineBreak);
+  return link;
+}
+
+function createCombinedCSV(tokenHolders) {
+  const combinedHolders = new Set();
+  tokenHolders.forEach(({ tokenId, holders }) => {
+    holders.forEach(([h, value]) => combinedHolders.add(h));
+  });
+  const csvContent = `data:text/csv;charset=utf-8,${Array.from(combinedHolders).join('\n')}`;
+  const encodedUri = encodeURI(csvContent);
+  const link = document.getElementById('download-combined');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', 'combined_holders.csv');
+  link.style.display = 'block';
+}
+
+const clearDateRangeButton = document.createElement('button');
+clearDateRangeButton.innerText = 'Clear Date Range';
+clearDateRangeButton.classList.add('button');
+clearDateRangeButton.addEventListener('click', (event) => {
+  event.preventDefault();
+  litepicker.setDateRange(null, null);
+  tokenDateRangeInput.value = '';
+});
+document.getElementById('token-form').appendChild(clearDateRangeButton);
 
 contractAddressInput.addEventListener('input', () => {
   const isContractAddressFilled = contractAddressInput.value.trim() !== '';
@@ -70,6 +116,15 @@ tokenForm.addEventListener('submit', async (event) => {
   loader.innerText = 'Loading...';
   csvLinksContainer.appendChild(loader);
 
+  const ownerTypeInput = document.getElementsByName('owner-type');
+  let ownerType = 'original';
+
+  for (const radio of ownerTypeInput) {
+    if (radio.checked) {
+      ownerType = radio.value;
+    }
+  }
+
   const contractAddress = contractAddressInput.value.trim();
   const tokenIds = tokenIdsInput.value ? tokenIdsInput.value.split(',').map(tokenId => tokenId.trim()) : [];
   const tokenRange = tokenRangeInput.value.trim();
@@ -87,30 +142,47 @@ tokenForm.addEventListener('submit', async (event) => {
 
   const tokenHolders = await response.json();
   console.log('Received token holders:', tokenHolders);
-  const zip = new JSZip();
 
-  for (const { tokenId, holders } of tokenHolders) {
-    const csvContent = 'data:text/csv;charset=utf-8,' + holders.map(([h, value]) => `${h},${value}`).join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `token_${tokenId}_holders.csv`);
-    link.innerText = `Download CSV for Token ID ${tokenId}`;
-    csvLinksContainer.appendChild(link);
-    const lineBreak = document.createElement('br');
-    csvLinksContainer.appendChild(lineBreak);
-    const csvString = holders.map(([h, value]) => `${h},${value}`).join('\n');
-    zip.file(`token_${tokenId}_holders.csv`, csvString);
-  }
+  csvLinksContainer.innerHTML = '';
+  loader.remove();
 
-  if (tokenHolders.length > 1) {
-    const content = await zip.generateAsync({ type: 'blob' });
-    downloadAllLink.href = URL.createObjectURL(content);
-    downloadAllLink.style.display = 'block';
-  } else {
-    downloadAllLink.style.display = 'none';
-  }
+  const csvLinks = [];
+  tokenHolders.forEach(({ tokenId, holders }) => {
+    const link = createCSV(tokenId, holders);
+    csvLinks.push(link);
+  });
+
+  createCombinedCSV(tokenHolders);
 
   submitButton.disabled = false;
-  loader.remove();
+});
+
+downloadAllLink.addEventListener('click', async (event) => {
+  event.preventDefault();
+
+  const zip = new JSZip();
+
+  for (const link of csvLinks) {
+    const response = await fetch(link.href);
+    const text = await response.text();
+    const filename = link.getAttribute('download');
+    zip.file(filename, text);
+  }
+
+  const combinedLink = document.getElementById('download-combined');
+  const combinedResponse = await fetch(combinedLink.href);
+  const combinedText = await combinedResponse.text();
+  const combinedFilename = combinedLink.getAttribute('download');
+  zip.file(combinedFilename, combinedText);
+
+  const content = await zip.generateAsync({ type: 'blob' });
+  const zipUrl = URL.createObjectURL(content);
+  const tempLink = document.createElement('a');
+  tempLink.href = zipUrl;
+  tempLink.setAttribute('download', 'all_token_holders.zip');
+  tempLink.style.display = 'none';
+  document.body.appendChild(tempLink);
+  tempLink.click();
+  document.body.removeChild(tempLink);
+  setTimeout(() => URL.revokeObjectURL(zipUrl), 1000);
 });

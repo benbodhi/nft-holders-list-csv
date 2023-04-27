@@ -11,21 +11,44 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
-async function fetchTokenIdsByDateRange(contractAddress, tokenDateStart, tokenDateEnd, apiKey) {
+async function fetchMintedTokenIdsByDateRange(contractAddress, tokenDateStart, tokenDateEnd, apiKey, ownerType) {
   const url = `https://api.etherscan.io/api?module=account&action=tokennfttx&contractaddress=${contractAddress}&startblock=0&endblock=999999999&sort=asc&apikey=${apiKey}`;
   const response = await axios.get(url);
   const transfers = response.data.result;
 
-  const mintedTokenIds = new Set();
+  const tokenDataByTokenId = new Map();
 
   transfers.forEach(tx => {
     const txDate = new Date(parseInt(tx.timeStamp) * 1000).toISOString().split('T')[0];
-    if ((!tokenDateStart || txDate >= tokenDateStart) && (!tokenDateEnd || txDate <= tokenDateEnd)) {
-      mintedTokenIds.add(parseInt(tx.tokenID));
+    const isMintTransaction = tx.from === '0x0000000000000000000000000000000000000000';
+    if ((!tokenDateStart || txDate >= tokenDateStart) && (!tokenDateEnd || txDate <= tokenDateEnd) && isMintTransaction) {
+      const tokenId = parseInt(tx.tokenID);
+      const toAddress = tx.to;
+
+      if (ownerType === 'current') {
+        if (tokenDataByTokenId.has(tokenId)) {
+          const oldToAddress = tokenDataByTokenId.get(tokenId).toAddress;
+          if (oldToAddress === '0x0000000000000000000000000000000000000000') {
+            tokenDataByTokenId.set(tokenId, { toAddress });
+          }
+        } else {
+          if (toAddress !== '0x0000000000000000000000000000000000000000') {
+            tokenDataByTokenId.set(tokenId, { toAddress });
+          }
+        }
+      } else {
+        tokenDataByTokenId.set(tokenId, { toAddress });
+      }
     }
   });
 
-  return Array.from(mintedTokenIds);
+  const tokenIds = Array.from(tokenDataByTokenId.keys());
+
+  if (ownerType === 'current') {
+    return tokenIds.filter(tokenId => tokenDataByTokenId.get(tokenId).toAddress !== '0x0000000000000000000000000000000000000000');
+  } else {
+    return tokenIds;
+  }
 }
 
 app.post('/fetch-token-holders', async (req, res) => {
@@ -36,6 +59,10 @@ app.post('/fetch-token-holders', async (req, res) => {
 
   let tokenIdsToFetch = tokenIds || [];
 
+  if (tokenDateStart && tokenDateEnd) {
+    tokenIdsToFetch = await fetchMintedTokenIdsByDateRange(contractAddress, tokenDateStart, tokenDateEnd, apiKey, ownerType);
+  }
+
   if (tokenRange) {
     const [start, end] = tokenRange.split('-').map(Number);
     const rangeIds = [];
@@ -45,63 +72,60 @@ app.post('/fetch-token-holders', async (req, res) => {
     tokenIdsToFetch = tokenIdsToFetch.concat(rangeIds);
   }
 
+  console.log('Token IDs to fetch:', tokenIdsToFetch);
+
   console.log('Fetching token holders for:', {
     contractAddress,
-    tokenIds: tokenIdsToFetch,
     dateRange: [tokenDateStart, tokenDateEnd],
+    tokenIds: tokenIdsToFetch,
+    ownerType
   });
 
   const allHolders = new Map();
 
   for (const tokenId of tokenIdsToFetch) {
-    const url = `https://api.etherscan.io/api?module=account&action=tokennfttx&contractaddress=${contractAddress}&startblock=0&endblock=999999999&sort=asc&apikey=${apiKey}`;
+    const url = `https://api.etherscan.io/api?module=account&action=tokennfttx&contractaddress=${contractAddress}&startblock=0&endblock=999999999&sort=asc&apikey=${apiKey}&tokenId=${tokenId}`;
     const response = await axios.get(url);
     const transfers = response.data.result.filter(tx => parseInt(tx.tokenID) === parseInt(tokenId));
 
     const holders = new Map();
 
+    console.log(`Token ID ${tokenId} transfers:`, transfers);
+
     for (const tx of transfers) {
-      const txDate = new Date(parseInt(tx.timeStamp) * 1000).toISOString().split('T')[0];
+      const isMintTransaction = tx.from === '0x0000000000000000000000000000000000000000';
 
-      if ((!tokenDateStart || txDate >= tokenDateStart) && (!tokenDateEnd || txDate <= tokenDateEnd)) {
-        const fromAddress = tx.from;
-        const toAddress = tx.to;
-        const value = parseInt(tx.value, 10);
+      if (ownerType === 'original' && !isMintTransaction) {
+        continue;
+      }
 
-        if (fromAddress === '0x0000000000000000000000000000000000000000') {
-          if (ownerType === 'current') {
-            if (holders.has(toAddress)) {
-              const oldValue = holders.get(toAddress);
-              holders.set(toAddress, oldValue + value);
-            } else {
-              holders.set(toAddress, value);
-            }
-          } else if (ownerType === 'original' && !holders.has(toAddress)) {
-            holders.set(toAddress, value);
-          }
-        } else if (ownerType === 'current') {
-          if (holders.has(fromAddress)) {
-            const oldValue = holders.get(fromAddress);
-            holders.set(fromAddress, Math.max(oldValue - value, 0));
-          }
+      console.log(`Token ID ${tokenId} transfer from ${tx.from} to ${tx.to}`);
 
-          if (holders.has(toAddress)) {
-            const oldValue = holders.get(toAddress);
-            holders.set(toAddress, oldValue + value);
-          } else {
-            holders.set(toAddress, value);
-          }
+      if (ownerType === 'current') {
+        if (isMintTransaction) {
+          holders.set(tx.to, tokenId);
+          console.log(`(1) Setting holder (original minter) ${tx.to} for Token ID ${tokenId}`);
+        } else {
+          holders.delete(tx.from);
+          console.log(`Removing holder (original minter) ${tx.from} for Token ID ${tokenId}`);
+          holders.set(tx.to, tokenId);
+          console.log(`(2) Setting holder (current owner) ${tx.to} for Token ID ${tokenId}`);
+        }
+      } else {
+        if (isMintTransaction) {
+          holders.set(tx.to, tokenId);
+          console.log(`(3) Setting holder (original minter) ${tx.to} for Token ID ${tokenId}`);
         }
       }
     }
 
     if (combined) {
-      for (const [holder, value] of holders.entries()) {
+      for (const [holder, tokenId] of holders.entries()) {
         if (allHolders.has(holder)) {
-          const oldValue = allHolders.get(holder);
-          allHolders.set(holder, oldValue + value);
+          const oldTokenIds = allHolders.get(holder);
+          allHolders.set(holder, oldTokenIds.concat(tokenId));
         } else {
-          allHolders.set(holder, value);
+          allHolders.set(holder, [tokenId]);
         }
       }
     } else {
