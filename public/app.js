@@ -325,6 +325,6 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('download-all button class list:', document.getElementById('download-all').classList);
 });
 
-// support for erc-1155
+// TODO support for erc-1155
 // TODO better progress update info for user
 // TODO make sure we don't bother processing beyond existing tokens - maybe check total tokens before iterating through non existent ones for better performance.
