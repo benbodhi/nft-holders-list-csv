@@ -7,6 +7,25 @@ const tokenRangeInput = document.getElementById('token-range');
 const tokenDateRangeInput = document.getElementById('token-date-range');
 const optionalInputs = [tokenIdsInput, tokenRangeInput, tokenDateRangeInput];
 
+const loaderTextOptions = [
+  'Grabbing the goods',
+  'Won\'t be too long',
+  'Hang tight',
+  'Getting There',
+  'Time to count the hairs on your arm',
+  '⌐◨-◨',
+  'LFG',
+  '⌐🄶-🄼',
+  'gm',
+  'Patience is the key',
+];
+
+function updateLoaderText(loader) {
+  const randomIndex = Math.floor(Math.random() * loaderTextOptions.length);
+  const randomText = loaderTextOptions[randomIndex];
+  loader.innerHTML = `Loading...<br>${randomText}`;
+}
+
 const toggleSwitch = document.querySelector('.toggle__input');
 
 function switchTheme(event) {
@@ -195,6 +214,12 @@ tokenForm.addEventListener('submit', async (event) => {
   loader.innerText = 'Loading...';
   csvLinksContainer.appendChild(loader);
 
+  // Update the loader text initially
+  updateLoaderText(loader);
+
+  // Update the loader text every 3 seconds
+  const loaderTextInterval = setInterval(() => updateLoaderText(loader), 3000);
+
   const ownerTypeInput = document.getElementsByName('owner-type');
   let ownerType = 'original';
 
@@ -239,6 +264,9 @@ tokenForm.addEventListener('submit', async (event) => {
   }
 
   submitButton.disabled = false;
+
+  // Clear the interval when the loading is done
+  clearInterval(loaderTextInterval);
 });
 
 downloadAllLink.addEventListener('click', async (event) => {
